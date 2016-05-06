@@ -1,0 +1,49 @@
+apply plugin: 'maven-publish'
+
+def archivaUrl = (project.hasProperty('archiva_snapshots_url')) ? project.archiva_snapshots_url : "http://localhost:8080/archiva/repository/snapshots/"
+
+def archivaUsername = (project.hasProperty('archiva_snapshots_archivaUsername')) ? project.archiva_snapshots_archivaUsername : 'undefined'
+def archivaUserPassword = (project.hasProperty('archiva_snapshots_archivaUserPassword')) ? project.archiva_snapshots_archivaUserPassword : 'undefined'
+
+//If the branch is `master`, use the internal releases archiva url
+if (project.hasProperty('branchName') && project.getProperty('branchName') == 'master') {
+    archivaUrl = (project.hasProperty('archiva_internal_url')) ? project.archiva_internal_url : "http://localhost:8080/archiva/repository/internal/"
+    archivaUsername = (project.hasProperty('archiva_internal_archivaUsername')) ? project.archiva_internal_archivaUsername : 'undefined'
+    archivaUserPassword = (project.hasProperty('archiva_internal_archivaUserPassword')) ? project.archiva_internal_archivaUserPassword : 'undefined'
+}
+
+/**
+ * Publish to Artifactory
+ */
+// Configure maven-publish plugin
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId project.archivesBaseName
+
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+
+            if (!archivaUsername.equalsIgnoreCase('undefined') && !archivaUserPassword.equalsIgnoreCase('undefined')) {
+                credentials {
+                    username archivaUsername
+                    password archivaUserPassword
+                }
+            }
+            url archivaUrl
+        }
+    }
+}
+
+task myPublishInfo {
+    doLast {
+        println("######## You branch is:       [$project.branchName]")
+        println("######## You commit hash is:  [$project.commitHash]")
+        println("######## archivaUsername:     [$archivaUsername]")
+        println("######## archivaUserPassword: [$archivaUserPassword]")
+        println("######## archivaUrl:          [$archivaUrl]")
+    }
+}

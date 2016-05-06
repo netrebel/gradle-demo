@@ -1,0 +1,19 @@
+// Dependency repositories configuration
+repositories project.repositoryConfiguration
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+project.ext.branchName = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+project.ext.commitHash= 'git rev-parse --verify HEAD'.execute().text.trim()
+
+/**
+ * version is only used when gradle/versioning.gradle is not applied to the project.
+ */
+version = '0.0.1'
+
+

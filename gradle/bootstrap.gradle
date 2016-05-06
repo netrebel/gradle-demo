@@ -1,0 +1,10 @@
+def gradleDirectory = buildscript.sourceFile.parentFile
+project.ext.gradleDirectory = gradleDirectory
+
+// Export repository configurations for both buildscript and project dependencies
+project.ext.repositoryConfiguration = {
+    mavenLocal()
+    maven { url "https://plugins.gradle.org/m2/" }
+    mavenCentral()
+    jcenter()
+}

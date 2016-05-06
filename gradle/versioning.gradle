@@ -1,0 +1,89 @@
+/**
+ * Version: The plugin axion-release introduces the following tasks:
+ *
+ * Help tasks:
+ *   currentVersion - Prints current project version extracted from SCM.
+ *
+ * Release tasks
+ *   createRelease - Performs first stage of release - creates tag.
+ *   markNextVersion - Creates next version marker tag and pushes it to remote.
+ *   pushRelease - Performs second stage of release - pushes tag to remote.
+ *   release - Performs release - creates tag and pushes it to remote.
+ *   verifyRelease - Verifies code is ready for release.
+ *
+ * The process to release a new tag is:
+ *
+ * # ./gradlew currentVersion
+ * 0.1.0-SNAPSHOT
+ * # ./gradlew release
+ * # ./gradlew currentVersion
+ * 0.1.0
+ *
+ */
+
+apply plugin: 'pl.allegro.tech.build.axion-release'
+
+scmVersion {
+    tag {
+        prefix = 'v'
+    }
+}
+
+project.ext.gitVersion = 'git describe --tags'.execute().text.trim()
+
+
+def getVersion = {
+    //First check if the project has already been tagged. I.e. gitVersion exists
+    if (project.gitVersion) {
+//        println "Git-version: $project.gitVersion"
+
+        //There is a tag, use the git hash to create the new version
+        def gitHash = project.gitVersion.substring(project.gitVersion.indexOf('-') + 1, project.gitVersion.length())
+//        println "Git-hash:    $gitHash"
+
+        //If the commit is at the tag level, that's our version!
+        if(gitHash.lastIndexOf('-') < 0) {
+            return gitHash
+        }
+
+        //Convert the version from something like '0.1.0-SNAPSHOT-1-g5a92792' to '0.1.0-g5a92792-SNAPSHOT'
+        def customVersion = gitHash + '-SNAPSHOT'
+//        println "Version:     $customVersion"
+
+        return customVersion
+    } else {
+        //First time when there are no git tags, use scmVersion
+        println "No git tag found, defaulting to scmVersion"
+        println "Version: $scmVersion.version"
+        return scmVersion.version
+    }
+}
+
+project.version = getVersion()
+
+task setVersion {
+    doLast {
+        if (project.hasProperty('branchName') && project.getProperty('branchName') == 'master') {
+            //Note for master branch: scmVersion is evaluated at the beginning of the scripts.
+            // So, when we come to this point, even though the 'release' has already tagged the code, the scmVersion will have a -SNAPSHOT at the end.
+            def versionWithoutSnapshot = scmVersion.version.substring(0, scmVersion.version.lastIndexOf('-'))
+            println "Master branch: creating v-$versionWithoutSnapshot"
+            "git tag v-$versionWithoutSnapshot".execute()
+
+            println "Master branch: pushing tag"
+            'git push --tags'.execute()
+
+        } else {
+            println "NOT Master branch, nothing to do"
+            println "scm-version: $scmVersion.version"
+            println "version:     $version"
+        }
+    }
+}
+
+task myVersion {
+    doLast {
+        println("Artifact:    $project.group:$project.archivesBaseName:$project.version")
+        println("Git version: $project.gitVersion")
+    }
+}
